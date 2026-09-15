@@ -6,6 +6,7 @@ import sendSuccessResponse from "../../utils/sendSuccessResponse";
 import { StatusCodes } from "http-status-codes";
 import { SubscriptionService } from "./subscription.service";
 import pick from "../../helpers/pick";
+import { subscriptionPlansDetails } from "../payment/payment.constant";
 
 const getAllSubscriptions = catchAsync(async (req: Request, res: Response) => {
     const filters = pick(req.query, SubscriptionFilterableFields);
@@ -32,7 +33,22 @@ const getSubscriptionByID = catchAsync(async (req: Request, res: Response) => {
     });
 });
 
+const getSubscriptionPlans = catchAsync(async (req: Request, res: Response) => {
+    // Transform the object into an array for the mobile app
+    const plans = Object.entries(subscriptionPlansDetails).map(([plan, details]) => ({
+        plan,
+        ...details,
+    }));
+
+    sendSuccessResponse(res, {
+        statusCode: StatusCodes.OK,
+        message: 'Subscription plans retrieved successfully',
+        data: plans,
+    });
+});
+
 export const SubscriptionController = {
     getAllSubscriptions,
     getSubscriptionByID,
+    getSubscriptionPlans,
 };
