@@ -7,8 +7,8 @@
     "scripts": {
         "build": "tsc && echo \"Build successful!\"",
         "start": "node ./dist/server.js",
-        "dev": "cross-env NODE_ENV=development ts-node-dev --respawn --transpile-only ./src/server.ts",
-        "staging": "cross-env NODE_ENV=staging ts-node-dev --respawn --transpile-only ./src/server.ts",
+        "dev": "cross-env NODE_ENV=development tsx watch ./src/server.ts",
+        "staging": "cross-env NODE_ENV=staging tsx watch ./src/server.ts",
         "start:prod": "cross-env NODE_ENV=production node ./dist/server.js",
         "build:dev": "cross-env NODE_ENV=development npm run build",
         "build:staging": "cross-env NODE_ENV=staging npm run build",
@@ -76,6 +76,6 @@
         "eslint": "^8.57.1",
         "eslint-config-prettier": "^9.1.0",
         "prettier": "^3.2.5",
-        "ts-node-dev": "^2.0.0"
+        "tsx": "^4.23.13"
     }
 }
