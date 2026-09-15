@@ -7,6 +7,10 @@ import auth from '../../middlewares/auth';
 const router = express.Router();
 
 router
+    .get(
+        '/registration-categories',
+        authController.getRegistrationCategories,
+    )
     .post(
         '/register-student',
         validateRequest(authValidator.registerStudentValidationSchema),

@@ -4,6 +4,7 @@ import sendSuccessResponse from '../../utils/sendSuccessResponse';
 import { authService } from './auth.service';
 import { Request, Response } from 'express';
 import config from '../../config';
+import { mainCategories, getValidSubCategories } from './category/category.constant';
 
 const registerStudent = catchAsync(async (req: Request, res: Response) => {
     const { otpCode, name, email, phone, password, categoryType, subCategory } = req.body;
@@ -133,6 +134,21 @@ const changeUserPassword = catchAsync(async (req, res) => {
     });
 });
 
+const getRegistrationCategories = catchAsync(async (req: Request, res: Response) => {
+    const data = mainCategories.map((mainCategory) => {
+        return {
+            mainCategory,
+            subCategories: getValidSubCategories(mainCategory as any),
+        };
+    });
+
+    sendSuccessResponse(res, {
+        statusCode: StatusCodes.OK,
+        message: 'Registration categories retrieved successfully',
+        data,
+    });
+});
+
 export const authController = {
     registerStudent,
     loginUser,
@@ -140,4 +156,5 @@ export const authController = {
     getTeacherAdminRefreshToken,
     resetStudentPassword,
     changeUserPassword,
+    getRegistrationCategories,
 };

@@ -44,7 +44,7 @@ const getAllRoutines = async (
     paginationOptions: IPaginationOptions,
     userInfo: TJWTDecodedUser,
 ): Promise<any> => {
-    const { searchTerm, ownRoutine, date, ...filtersData } = filters;
+    const { searchTerm, ownRoutine, date, isPublished, ...filtersData } = filters;
     const { page, limit, skip, sortBy, sortOrder } =
         calculatePagination(paginationOptions);
 
@@ -88,6 +88,17 @@ const getAllRoutines = async (
             },
         });
     }
+
+    // Handle isPublished explicitly for legacy records
+    if (isPublished !== undefined) {
+        if (isPublished === 'true' || isPublished === true) {
+            andConditions.push({ isPublished: true });
+        } else if (isPublished === 'false' || isPublished === false) {
+            andConditions.push({
+                $or: [{ isPublished: false }, { isPublished: { $exists: false } }],
+            });
+        }
+    }
     // filtering data
     if (Object.keys(filtersData).length) {
         andConditions.push({
@@ -115,13 +126,22 @@ const getAllRoutines = async (
             path: 'course_id',
         });
 
+    // Map data to ensure isPublished is explicitly returned as boolean
+    const formattedResult = result.map((doc: any) => {
+        const obj = doc.toObject ? doc.toObject() : doc;
+        return {
+            ...obj,
+            isPublished: obj.isPublished ?? false,
+        };
+    });
+
     return {
         meta: {
             page,
             limit: limit === 0 ? count : limit,
             count,
         },
-        data: result,
+        data: formattedResult,
     };
 };
 

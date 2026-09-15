@@ -10,7 +10,8 @@ export const RoutineFilterableFields = [
     'type',
     'ownRoutine',
     'date',
-    'course_id'
+    'course_id',
+    'isPublished'
 ];
 
 //searchTerm

@@ -22,5 +22,6 @@ export type IRoutineFilters = {
   type?: string;
   ownRoutine?:string,
   date?:string,
-  course_id?:string
+  course_id?:string,
+  isPublished?:string | boolean
 }
