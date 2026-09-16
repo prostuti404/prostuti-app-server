@@ -16,7 +16,7 @@ const AppConfigSchema = new Schema<IAppConfig, AppConfigModel>(
         freeAccessFeatures: {
             type: [String],
             required: true,
-            default: [],
+            default: ['MOCK_TEST', 'LIVE_CLASS', 'RECORDED_VIDEO'],
         },
         featureLimits: {
             type: Schema.Types.Mixed,

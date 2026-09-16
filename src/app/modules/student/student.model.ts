@@ -128,6 +128,9 @@ const studentSchema = new Schema<IStudent>(
         ],
         subscriptionStartDate: { type: Date },
         subscriptionEndDate: { type: Date },
+        trialStartDate: { type: Date, default: Date.now },
+        mockTestsUsed: { type: Number, default: 0 },
+        liveClassesUsed: { type: Number, default: 0 },
         isSubscribed:{
             type:Boolean,
             default:false,

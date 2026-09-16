@@ -26,6 +26,9 @@ export interface IStudent {
     enrolledCourses?: Types.ObjectId[],
     subscriptionStartDate?: Date;
     subscriptionEndDate?: Date;
+    trialStartDate?: Date;
+    mockTestsUsed?: number;
+    liveClassesUsed?: number;
     isSubscribed:boolean
 }
 
