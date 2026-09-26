@@ -15,9 +15,7 @@ const createTeacher = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createAdmin = catchAsync(async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-
-    const result = await userService.createAdmin(email, password);
+    const result = await userService.createAdmin(req.body);
 
     sendSuccessResponse(res, {
         statusCode: StatusCodes.OK,

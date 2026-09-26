@@ -66,7 +66,7 @@ const createTeacher = async (payload: Record<string, any>) => {
 };
 
 // Create Admin
-const createAdmin = async (email: string, password: string) => {
+const createAdmin = async (payload: Record<string, any>) => {
     const session = await mongoose.startSession();
 
     try {
@@ -74,8 +74,8 @@ const createAdmin = async (email: string, password: string) => {
 
         const user: Partial<IUser> = {
             registeredId: `AID${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
-            email,
-            password,
+            email: payload.email,
+            password: payload.password,
             role: 'admin',
         };
 
@@ -91,6 +91,8 @@ const createAdmin = async (email: string, password: string) => {
             user_id: newUser[0]._id,
             adminId: newUser[0].registeredId,
             email: newUser[0].email,
+            ...(payload.name && { name: payload.name }),
+            ...(payload.phone && { phone: payload.phone }),
         };
 
         const newAdmin = await Admin.create([admin], { session });

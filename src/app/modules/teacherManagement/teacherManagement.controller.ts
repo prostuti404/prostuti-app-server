@@ -45,8 +45,20 @@ const updateTeacherAssignedWorks = catchAsync(
     },
 );
 
+const deleteTeacher = catchAsync(async (req: Request, res: Response) => {
+    const { teacherId } = req.params;
+    const result = await teacherManagementService.deleteTeacher(teacherId);
+
+    sendSuccessResponse(res, {
+        statusCode: StatusCodes.OK,
+        message: 'Teacher deleted successfully',
+        data: result,
+    });
+});
+
 export const teacherManagementController = {
     getAllTeacher,
     getTeacherInformation,
     updateTeacherAssignedWorks,
+    deleteTeacher
 };

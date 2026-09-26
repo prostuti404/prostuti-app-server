@@ -56,6 +56,7 @@ const teacherSchema = new Schema<ITeacher>(
             trim: true,
             validate: {
                 validator: function (v: string) {
+                    if (!v) return true;
                     return /^(\+?880|0)1[3456789]\d{8}$/.test(v);
                 },
                 message: (props) =>

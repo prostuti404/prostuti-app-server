@@ -39,6 +39,7 @@ const userSchema = new Schema<IUser, IUserModel>(
                 },
                 {
                     validator: function (phone: string) {
+                        if (!phone) return true;
                         return /^(\+?880|0)1[3456789]\d{8}$/.test(phone);
                     },
                     message: 'Invalid Bangladeshi phone number',
@@ -77,6 +78,7 @@ const userSchema = new Schema<IUser, IUserModel>(
             },
             required: [true, 'Role is required'],
         },
+        isSuperAdmin: { type: Boolean, default: false },
     },
     {
         timestamps: true,

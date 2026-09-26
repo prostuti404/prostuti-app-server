@@ -27,8 +27,28 @@ const deleteStudent = catchAsync(async (req, res) => {
         });
 
 })
+const getAllAdmins = catchAsync(async (req, res) => {
+    const result = await adminService.getAllAdmins();
+    sendSuccessResponse(res, {
+        statusCode: StatusCodes.OK,
+        message: 'Admins retrieved successfully',
+        data: result,
+    });
+});
+
+const deleteAdmin = catchAsync(async (req, res) => {
+    const { adminId } = req.params;
+    const result = await adminService.deleteAdmin(adminId);
+    sendSuccessResponse(res, {
+        statusCode: StatusCodes.OK,
+        message: 'Admin deleted successfully',
+        data: result,
+    });
+});
 
 export const adminController = {
     deleteCourse,
-    deleteStudent
+    deleteStudent,
+    getAllAdmins,
+    deleteAdmin
 }

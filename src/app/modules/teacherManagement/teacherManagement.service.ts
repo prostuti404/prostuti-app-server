@@ -5,6 +5,7 @@ import { StatusCodes } from 'http-status-codes';
 import AppError from '../../classes/errorClasses/AppError';
 import { Course } from '../courseManagement/course/course.model';
 import { Teacher } from '../teacher/teacher.model';
+import { User } from '../user/user.model';
 import { teacherManagementSearchableFields } from './teacherManagemen.constant';
 import QueryBuilder from './teacherManagementQueryBuilder';
 
@@ -56,8 +57,20 @@ const updateTeacherAssignedWorks = async (payload: Record<string, unknown>) => {
     return updatedTeacher;
 };
 
+const deleteTeacher = async (teacherId: string) => {
+    const teacher = await Teacher.findById(teacherId);
+    if (!teacher) return null;
+
+    await Promise.all([
+        User.findByIdAndDelete(teacher.user_id),
+        Teacher.findByIdAndDelete(teacherId)
+    ]);
+    return null;
+}
+
 export const teacherManagementService = {
     getAllTeacher,
     getTeacherInformation,
     updateTeacherAssignedWorks,
+    deleteTeacher
 };

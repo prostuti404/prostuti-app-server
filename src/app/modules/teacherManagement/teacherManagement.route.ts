@@ -1,6 +1,7 @@
 import express from 'express';
 import { teacherManagementController } from './teacherManagement.controller';
 import auth from '../../middlewares/auth';
+import superAdmin from '../../middlewares/superAdmin';
 import { USER_ROLE } from '../user/user.constant';
 import validateRequest from '../../middlewares/validateRequest';
 import { teacherManagementValidator } from './teacherManagement.validation';
@@ -21,6 +22,12 @@ router
             teacherManagementValidator.updateTeacherAssignedWorksValidationSchema,
         ),
         teacherManagementController.updateTeacherAssignedWorks,
+    )
+    .delete(
+        '/:teacherId',
+        auth(USER_ROLE.admin),
+        superAdmin,
+        teacherManagementController.deleteTeacher,
     );
 
 export const teacherManagementRoute = router;

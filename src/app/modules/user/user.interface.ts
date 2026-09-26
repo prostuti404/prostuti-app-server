@@ -15,6 +15,7 @@ export interface IUser {
     isDeleted: boolean;
     status: TUserStatus;
     role: TUserRole;
+    isSuperAdmin?: boolean;
 }
 
 export interface IUserModel extends Model<IUser> {

@@ -7,6 +7,7 @@ import { Test } from "../courseManagement/test/test.model";
 import { EnrolledCourse } from "../enrolledCourse/enrolledCourse.model";
 import { Student } from "../student/student.model";
 import { User } from "../user/user.model";
+import { Admin } from "./admin.model";
 
 const deleteCourseFromDB = async (courseId: string) => {
     const result = await Promise.all([
@@ -33,7 +34,24 @@ const deleteStudentFromDB = async (userId: string) => {
     return result;
 }
 
+const getAllAdmins = async () => {
+    return await Admin.find().populate('user_id');
+}
+
+const deleteAdmin = async (adminId: string) => {
+    const admin = await Admin.findById(adminId);
+    if (!admin) return null;
+    
+    await Promise.all([
+        User.findByIdAndDelete(admin.user_id),
+        Admin.findByIdAndDelete(adminId)
+    ]);
+    return null;
+}
+
 export const adminService = {
     deleteCourseFromDB,
-    deleteStudentFromDB
+    deleteStudentFromDB,
+    getAllAdmins,
+    deleteAdmin
 }

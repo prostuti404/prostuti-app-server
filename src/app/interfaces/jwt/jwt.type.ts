@@ -7,10 +7,12 @@ export type TJWTDecodedUser = {
     role: TUserRole;
     iat: number;
     exp: number;
+    isSuperAdmin?: boolean;
 };
 
 export type TJWTPayload = {
     userId: Types.ObjectId;
     email?: string;
     role: TUserRole;
+    isSuperAdmin?: boolean;
 };

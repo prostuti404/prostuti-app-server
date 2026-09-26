@@ -38,6 +38,7 @@ import { analyticsRoute } from '../modules/analytics/analytics.route';
 import { TeacherLogRoute } from '../modules/teacherLog/teacherLog.route';
 import { RevenueRoute } from '../modules/revenue/revenue.route';
 import { appConfigRoutes } from '../modules/appConfig/appConfig.route';
+import { debugRoutes } from '../modules/debug/debug.route';
 
 const globalRoute = Router();
 
@@ -80,6 +81,7 @@ const routes = [
     { path: '/teacher-log', route: TeacherLogRoute },
     {path: '/revenue-management', route: RevenueRoute },
     { path: '/config', route: appConfigRoutes },
+    { path: '/test', route: debugRoutes },
 ];
 
 routes.forEach((route) => globalRoute.use(route.path, route.route));

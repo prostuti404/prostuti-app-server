@@ -160,7 +160,7 @@ const loginUser = async (payload: ILoginStudent) => {
 
     // For student
     if (user.role === USER_ROLE.student) {
-        const jwtPayload = { userId: user._id, role: user.role };
+        const jwtPayload = { userId: user._id, role: user.role, isSuperAdmin: user.isSuperAdmin };
 
         const accessTokenExpiresIn = convertJWTExpireTimeToSeconds(
             config.jwt_student_access_token_expires_in,
@@ -195,7 +195,7 @@ const loginUser = async (payload: ILoginStudent) => {
     }
     // For teacher and admin
     else {
-        const jwtPayload = { userId: user._id, role: user.role };
+        const jwtPayload = { userId: user._id, role: user.role, isSuperAdmin: user.isSuperAdmin };
         const refreshTokenExpiresIn = convertJWTExpireTimeToSeconds(
             config.jwt_refresh_token_expired_in,
         );
@@ -264,7 +264,7 @@ const getStudentRefreshToken = async (token: string) => {
         throw new AppError(StatusCodes.UNAUTHORIZED, 'You are not authorized!');
     }
 
-    const jwtPayload = { userId: user._id, role: user.role };
+    const jwtPayload = { userId: user._id, role: user.role, isSuperAdmin: user.isSuperAdmin };
 
     const accessTokenExpiresIn = convertJWTExpireTimeToSeconds(
         config.jwt_student_access_token_expires_in,
@@ -351,7 +351,7 @@ const getTeacherAdminRefreshToken = async (token: string) => {
     }
 
     // Create access token for teacher admin
-    const jwtPayload = { userId: user._id, role: user.role };
+    const jwtPayload = { userId: user._id, role: user.role, isSuperAdmin: user.isSuperAdmin };
     const accessToken = jwtHelpers.createToken(
         jwtPayload,
         config.jwt_access_token_secret,
