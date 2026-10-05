@@ -24,15 +24,20 @@ const createBroadcastRequest = async (
     subject: string
 ): Promise<IBroadcastRequest> => {
     // Check if student exists
-    const student = await User.findOne({
+    const user = await User.findOne({
         _id: studentId,
         role: USER_ROLE.student,
         isDeleted: false,
         status: 'active'
     });
 
-    if (!student) {
+    if (!user) {
         throw new AppError(StatusCodes.NOT_FOUND, 'Student not found or inactive');
+    }
+
+    const studentRecord = await Student.findOne({ user_id: studentId });
+    if (!studentRecord || !studentRecord.isSubscribed) {
+        throw new AppError(StatusCodes.FORBIDDEN, 'You must be a subscriber to use the Doubt Solve feature.');
     }
 
     // Set expiry time (24 hours from now)
