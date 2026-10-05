@@ -1,34 +1,17 @@
 import { Model } from 'mongoose';
-import { CategoryDivision, CategoryType, CategoryUniversityType } from './category.constant';
+import { CategoryGroup, CategoryType } from './category.constant';
 
 export type ICategory = {
+    group: CategoryGroup;
     type: CategoryType;
-    // class?: CategoryClass
-    division?: CategoryDivision;
-    subject: string;
-    chapter?: string;
-    lesson?: string;
-    universityType?: CategoryUniversityType;
-    universityName?: string;
-    unit?: string;
-    jobType?: string;
-    jobName?: string;
-    
+    name: string;
 };
 
 export type CategoryModel = Model<ICategory, Record<string, unknown>>;
 
 export type ICategoryFilters = {
     searchTerm?: string;
+    group?: string;
     type?: string;
-    // class?: string;
-    division?: string;
-    subject?: string;
-    chapter?: string;
-    universityType?: string;
-    universityName?: string;
-    unit?: string;
-    jobType?: string;
-    jobName?: string;
-    // unit?: string;
+    name?: string;
 };

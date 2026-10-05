@@ -23,10 +23,9 @@ const createQuestionPattern = async (
         throw new AppError(StatusCodes.NOT_FOUND, 'Admin not found');
     }
 
-    // Check category exists and fetch category subjects
-    let categorySubjects: string[] = [];
+    // Check category exists
     if (payload.category_id) {
-        const categories = await Promise.all(
+        await Promise.all(
             payload.category_id.map(async (categoryId: Types.ObjectId) => {
                 const checkCategory = await Category.findOne({
                     _id: categoryId,
@@ -39,25 +38,6 @@ const createQuestionPattern = async (
                 }
                 return checkCategory;
             }),
-        );
-        categorySubjects = categories.map((cat) => cat.subject.toLowerCase());
-    }
-
-    // Validate subjects against categories
-    const allSubjects = [
-        ...(payload.mainSubjects || []).map((sub) => sub.subject.toLowerCase()),
-        ...(payload.optionalSubjects || []).map((sub) =>
-            sub.subject.toLowerCase(),
-        ),
-    ];
-
-    const invalidSubjects = allSubjects.filter(
-        (subject) => !categorySubjects.includes(subject),
-    );
-    if (invalidSubjects.length > 0) {
-        throw new AppError(
-            StatusCodes.BAD_REQUEST,
-            `Subjects ${invalidSubjects.join(', ')} do not belong to the specified categories`,
         );
     }
 
@@ -84,16 +64,9 @@ const getAllQuestionPatterns = async (
 ) => {
     const {
         searchTerm,
+        categoryGroup,
         categoryType,
-        categoryDivision,
-        categoryUniversityType,
-        categoryUniversityName,
-        categoryChapter,
-        categorySubject,
-        categoryJobType,
-        categoryJobName,
-        categoryUnit,
-        categoryLesson,
+        categoryName,
         ...filtersData
     } = filters;
     const { page, limit, skip, sortBy, sortOrder } =
@@ -122,32 +95,14 @@ const getAllQuestionPatterns = async (
 
     // Category-based filtering
     if (
+        categoryGroup ||
         categoryType ||
-        categoryDivision ||
-        categoryUniversityType ||
-        categoryUniversityName ||
-        categoryChapter ||
-        categorySubject ||
-        categoryJobType ||
-        categoryJobName ||
-        categoryUnit ||
-        categoryLesson
-
+        categoryName
     ) {
         const categoryFilter: any = {};
+        if (categoryGroup) categoryFilter.group = categoryGroup;
         if (categoryType) categoryFilter.type = categoryType;
-        if (categoryDivision) categoryFilter.division = categoryDivision;
-        if (categoryUniversityType)
-            categoryFilter.universityType = categoryUniversityType;
-        if (categoryUniversityName)
-            categoryFilter.universityName = categoryUniversityName;
-        if (categoryChapter) categoryFilter.chapter = categoryChapter;
-        if (categorySubject) categoryFilter.subject = categorySubject;
-        if (categoryJobType) categoryFilter.jobType = categoryJobType;
-        if (categoryJobName) categoryFilter.jobName = categoryJobName;
-        if (categoryUnit) categoryFilter.unit = categoryUnit;
-        if (categoryLesson) categoryFilter.lesson = categoryLesson;
-        
+        if (categoryName) categoryFilter.name = categoryName;
 
         const matchingCategories =
             await Category.find(categoryFilter).select('_id');
@@ -217,8 +172,8 @@ const updateQuestionPattern = async (
   // Determine which category_id to use
   const effectiveCategoryId = payload.category_id || checkQuestionPattern.category_id;
 
-  // Check if categories exist and fetch their subjects
-  const categories = await Promise.all(
+  // Check if categories exist
+  await Promise.all(
     effectiveCategoryId.map(async (categoryId: Types.ObjectId) => {
       const checkCategory = await Category.findOne({ _id: categoryId });
       if (!checkCategory) {
@@ -227,25 +182,6 @@ const updateQuestionPattern = async (
       return checkCategory;
     }),
   );
-  const categorySubjects = categories.map((cat) => cat.subject.toLowerCase());
-
-  // Validate subjects against categories if mainSubjects or optionalSubjects are provided
-  if (payload.mainSubjects || payload.optionalSubjects) {
-    const allSubjects = [
-      ...(payload.mainSubjects || checkQuestionPattern.mainSubjects || []).map((sub) => sub.subject.toLowerCase()),
-      ...(payload.optionalSubjects || checkQuestionPattern.optionalSubjects || []).map((sub) => sub.subject.toLowerCase()),
-    ];
-
-    const invalidSubjects = allSubjects.filter(
-      (subject) => !categorySubjects.includes(subject)
-    );
-    if (invalidSubjects.length > 0) {
-      throw new AppError(
-        StatusCodes.BAD_REQUEST,
-        `Subjects ${invalidSubjects.join(', ')} do not belong to the specified categories`
-      );
-    }
-  }
 
   // Update question pattern
   const questionPattern = await QuestionPattern.findByIdAndUpdate(

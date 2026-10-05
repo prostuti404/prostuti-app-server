@@ -32,14 +32,7 @@ export type IQuestionPatternFilters = {
     searchTerm?: string;
     createdBy?: string;
     questionType?: string;
+    categoryGroup?: string;
     categoryType?: string;
-    categoryDivision?: string;
-    categoryUniversityType?: string;
-    categoryUniversityName?: string;
-    categoryChapter?: string;
-    categorySubject?: string;
-    categoryJobType?: string;
-    categoryJobName?: string;
-    categoryUnit?: string;
-    categoryLesson?: string;
+    categoryName?: string;
 };
