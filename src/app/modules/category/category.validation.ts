@@ -7,39 +7,30 @@ const createCategory = z.object({
             group: z.enum([...categoryGroup] as [string, ...string[]], {
                 required_error: 'Category group is required.',
             }),
-            type: z.enum([...categoryType] as [string, ...string[]], {
-                required_error: 'Category type is required.',
-            }),
-            name: z
+            subject: z
                 .string({
-                    required_error: 'Category name is required',
+                    required_error: 'Subject name is required.',
                 })
-                .min(1, 'Category name cannot be an empty string'),
+                .min(1, 'Subject name cannot be an empty string'),
+            lesson: z
+                .string({
+                    required_error: 'Lesson name is required.',
+                })
+                .min(1, 'Lesson name cannot be an empty string'),
+            type: z.enum([...categoryType] as [string, ...string[]]).optional(),
+            name: z.string().optional(),
         })
-        .strict()
-        .refine(
-            (data) => {
-                if ((data.group === 'Arts' || data.group === 'Commerce') && data.type === 'Admission') {
-                    return data.name === 'University';
-                }
-                return true;
-            },
-            {
-                message: 'Arts and Commerce admission only supports University.',
-                path: ['name'],
-            }
-        ),
+        .strict(),
 });
 
 const updateCategory = z.object({
     body: z
         .object({
             group: z.enum([...categoryGroup] as [string, ...string[]]).optional(),
+            subject: z.string().min(1).optional(),
+            lesson: z.string().min(1).optional(),
             type: z.enum([...categoryType] as [string, ...string[]]).optional(),
-            name: z
-                .string()
-                .min(1, 'Category name cannot be an empty string')
-                .optional(),
+            name: z.string().min(1).optional(),
         })
         .strict(),
 });

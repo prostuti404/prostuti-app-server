@@ -12,6 +12,11 @@ const createCategory = async (
     userInfo: TJWTDecodedUser,
     payload: Partial<ICategory>,
 ): Promise<any> => {
+    if (!payload.name && payload.subject) {
+        payload.name = payload.lesson
+            ? `${payload.subject} - ${payload.lesson}`
+            : payload.subject;
+    }
     const data = await Category.create(payload);
     return data;
 };
@@ -21,12 +26,19 @@ const getAllCategories = async (
     paginationOptions: IPaginationOptions,
     userInfo: TJWTDecodedUser,
 ): Promise<{ meta: any; data: any[] }> => {
-    const { searchTerm, ...filtersData } = filters;
+    const { searchTerm, onlyCreated, ...filtersData } = filters;
 
     const { page, limit, skip, sortBy, sortOrder } =
         calculatePagination(paginationOptions);
 
     const andConditions = [];
+
+    if (onlyCreated === 'true' || onlyCreated === true) {
+        andConditions.push({
+            subject: { $exists: true, $nin: ['', null] },
+            lesson: { $exists: true, $nin: ['', null] },
+        });
+    }
 
     if (searchTerm) {
         andConditions.push({

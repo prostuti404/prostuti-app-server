@@ -62,8 +62,14 @@ const deleteFlashcardByID = catchAsync(async (req: Request, res: Response) => {
     });
 });
 const approveFlashcardByID = catchAsync(async (req: Request, res: Response) => {
-    const result = await FlashcardService.approveFlashcardByID((req.params.id as string),req.user);
-    await createTeacherLog(req,result.approvedBy.toString(),`Approve_Flashcard","Approved a flashcard with  ID ${result._id}`)
+    const flashcardId =
+        req.params.id && req.params.id !== '[object Object]'
+            ? (req.params.id as string)
+            : (req.body?.flashcardId as string);
+    const result = await FlashcardService.approveFlashcardByID(flashcardId, req.body, req.user);
+    if (req.user.role === 'teacher' && result.approvedBy) {
+        await createTeacherLog(req,result.approvedBy.toString(),`Approve_Flashcard","Approved a flashcard with  ID ${result._id}`)
+    }
 
     sendSuccessResponse(res, {
         statusCode: StatusCodes.OK,

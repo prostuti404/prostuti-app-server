@@ -8,11 +8,17 @@ export const categoryFilterableFields = [
     'searchTerm',
     'group',
     'type',
-    'name'
+    'name',
+    'subject',
+    'lesson',
+    'onlyCreated'
 ];
 
 export const categorySearchableFields = [
     'group',
     'type',
-    'name'
+    'name',
+    'subject',
+    'lesson'
 ];
+

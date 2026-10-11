@@ -8,6 +8,10 @@ import { TAssignedWorks } from '../modules/teacher/teacher.interface';
 const checkAssignedWork = (...requiredWorks: TAssignedWorks[]) => {
     return catchAsync(
         async (req: Request, res: Response, next: NextFunction) => {
+            if (req.user?.role === 'admin') {
+                return next();
+            }
+
             const userId = req.user?.userId;
 
             // Fetch teacher from the database

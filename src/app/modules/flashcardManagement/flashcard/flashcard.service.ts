@@ -14,6 +14,7 @@ import { flashcardSearchableFields } from './flashcard.constant';
 import { User } from '../../user/user.model';
 import { FlashcardHistory } from '../flashcardHistory/flashcardHistory.model';
 import { Teacher } from '../../teacher/teacher.model';
+import { Admin } from '../../admin/admin.model';
 import { IStudent } from '../../student/student.interface';
 import { ITeacher } from '../../teacher/teacher.interface';
 import { ICardInteraction } from '../flashcardHistory/flashcardHistory.interface';
@@ -90,6 +91,7 @@ const getAllFlashcards = async (
     const {
         searchTerm,
         visibility,
+        categoryGroup,
         categoryType,
         categoryDivision,
         categoryUniversityType,
@@ -130,6 +132,7 @@ const getAllFlashcards = async (
     }
 
     if (
+        categoryGroup ||
         categoryType ||
         categoryDivision ||
         categoryUniversityType ||
@@ -142,6 +145,7 @@ const getAllFlashcards = async (
         categoryLesson
     ) {
         const categoryFilter: any = {};
+        if (categoryGroup) categoryFilter.group = categoryGroup;
         if (categoryType) categoryFilter.type = categoryType;
         if (categoryDivision) categoryFilter.division = categoryDivision;
         if (categoryUniversityType)
@@ -249,11 +253,11 @@ const getFlashcardByID = async (id: string, userInfo: TJWTDecodedUser) => {
         throw new AppError(StatusCodes.NOT_FOUND, 'User does not exist');
     }
 
-    // Check flashcard with student details populated
-    const checkFlashcard = await Flashcard.findById(id).populate(
-        'studentId',
-        'name email',
-    ); // Adjust fields as needed
+    // Check flashcard with student and category details populated
+    const checkFlashcard = await Flashcard.findById(id)
+        .populate('studentId', 'name email')
+        .populate('categoryId', 'group subject lesson name type')
+        .populate('approvedBy', 'name email');
     if (!checkFlashcard) {
         throw new AppError(StatusCodes.NOT_FOUND, 'Flashcard does not exist');
     }
@@ -605,7 +609,11 @@ const deleteFlashcardByID = async (id: string, userInfo: TJWTDecodedUser) => {
     return itemToDelete;
 };
 
-const approveFlashcardByID = async (id: string, userInfo: TJWTDecodedUser) => {
+const approveFlashcardByID = async (
+    id: string,
+    payload: { categoryId?: string },
+    userInfo: TJWTDecodedUser
+) => {
     const checkFlashcard = await Flashcard.findOne({
         _id: id,
         visibility: 'EVERYONE',
@@ -617,13 +625,32 @@ const approveFlashcardByID = async (id: string, userInfo: TJWTDecodedUser) => {
             'Flashcard does not exist or already approved',
         );
     }
-    const checkTeacher = await Teacher.findOne({ user_id: userInfo.userId });
-    if (!checkTeacher) {
-        throw new AppError(StatusCodes.NOT_FOUND, 'Teacher does not exist');
-    }
-    checkFlashcard.approvedBy = checkTeacher._id;
-    checkFlashcard.isApproved = true;
 
+    if (payload?.categoryId) {
+        const checkCategory = await Category.findById(payload.categoryId);
+        if (!checkCategory) {
+            throw new AppError(
+                StatusCodes.NOT_FOUND,
+                'Selected category does not exist',
+            );
+        }
+        checkFlashcard.categoryId = checkCategory._id;
+    }
+
+    if (userInfo.role === 'admin') {
+        const checkAdmin = await Admin.findOne({ user_id: userInfo.userId });
+        if (checkAdmin) {
+            checkFlashcard.approvedBy = checkAdmin._id;
+        }
+    } else {
+        const checkTeacher = await Teacher.findOne({ user_id: userInfo.userId });
+        if (!checkTeacher) {
+            throw new AppError(StatusCodes.NOT_FOUND, 'Teacher does not exist');
+        }
+        checkFlashcard.approvedBy = checkTeacher._id;
+    }
+
+    checkFlashcard.isApproved = true;
     await checkFlashcard.save();
     return checkFlashcard;
 };

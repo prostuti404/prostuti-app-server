@@ -20,6 +20,7 @@ export type IFlashcardFilters = {
     visibility?: string
     studentId?: string; 
     isApproved?: string;
+    categoryGroup?: string;
     categoryType?: string
     categoryDivision?: string
     categoryUniversityType?: string;

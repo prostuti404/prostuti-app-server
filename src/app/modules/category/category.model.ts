@@ -9,14 +9,29 @@ const CategorySchema = new Schema<ICategory, CategoryModel>(
             enum: categoryGroup,
             required: [true, 'Group is required.'],
         },
+        subject: {
+            type: String,
+            required: [true, 'Subject is required.'],
+            trim: true,
+        },
+        lesson: {
+            type: String,
+            required: [true, 'Lesson is required.'],
+            trim: true,
+        },
         type: {
             type: String,
             enum: categoryType,
-            required: [true, 'Type is required.'],
+            default: 'Academic',
         },
         name: {
             type: String,
-            required: [true, 'Name is required.'],
+            default: function (this: any) {
+                if (this && this.subject) {
+                    return this.lesson ? `${this.subject} - ${this.lesson}` : this.subject;
+                }
+                return '';
+            },
         },
     },
     {
@@ -24,7 +39,7 @@ const CategorySchema = new Schema<ICategory, CategoryModel>(
     },
 );
 
-CategorySchema.index({ group: 1, type: 1, name: 1 }, { unique: true });
+CategorySchema.index({ group: 1, subject: 1, lesson: 1 }, { unique: true, sparse: true });
 
 export const Category = model<ICategory, CategoryModel>(
     'Category',

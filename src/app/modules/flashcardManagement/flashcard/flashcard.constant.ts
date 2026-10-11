@@ -6,6 +6,7 @@ export const flashcardFilterableFields = [
     'studentId',
     'isApproved',
     'visibility',
+    'categoryGroup',
     'categoryType',
     'categoryDivision',
     'categoryUniversityType',
