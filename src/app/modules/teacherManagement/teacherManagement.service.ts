@@ -11,7 +11,7 @@ import QueryBuilder from './teacherManagementQueryBuilder';
 
 // Get All Teachers
 const getAllTeacher = async (query: Record<string, unknown>) => {
-    const teacherManagementQuery = new QueryBuilder(Teacher.find(), query)
+    const teacherManagementQuery = new QueryBuilder(Teacher.find().populate('user_id'), query)
         .search(teacherManagementSearchableFields)
         .filter()
         .sort()

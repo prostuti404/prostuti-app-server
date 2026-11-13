@@ -35,7 +35,7 @@ const errorPreprocessor = (error: any) => {
     // Handle JWT Token Errors
     else if (error.name === 'TokenExpiredError') {
         return handleJWTExpiredError(error);
-    } else if (error.message.startsWith('Unexpected token')) {
+    } else if (error.message?.startsWith('Unexpected token')) {
         return handleUnexpectedJWTTokenError(error);
     } else if (error.name === 'JsonWebTokenError') {
         return handleJsonWebTokenError(error);

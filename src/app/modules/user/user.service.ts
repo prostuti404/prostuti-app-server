@@ -9,108 +9,118 @@ import { Admin } from '../admin/admin.model';
 import { formattedTeacherJoiningDate } from './user.utils';
 import { USER_ROLE } from './user.constant';
 import { Student } from '../student/student.model';
+import { runTransactionSafe } from '../../utils/runTransactionSafe';
 
 // Create Teacher
 const createTeacher = async (payload: Record<string, any>) => {
-    const session = await mongoose.startSession();
+    let createdUserId: mongoose.Types.ObjectId | null = null;
 
-    try {
-        session.startTransaction();
+    return await runTransactionSafe(
+        async (session) => {
+            const userEmail = payload.email?.trim().toLowerCase();
+            const userPhone = payload.phone?.trim() ? payload.phone.trim() : undefined;
 
-        const user: Partial<IUser> = {
-            registeredId: `TID${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
-            email: payload.email,
-            password: payload.password,
-            role: 'teacher',
-        };
+            const user: Partial<IUser> = {
+                registeredId: `TID${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
+                email: userEmail,
+                password: payload.password,
+                role: USER_ROLE.teacher,
+                ...(userPhone && { phone: userPhone }),
+            };
 
-        // Crate a user to User model (Transaction 1)
-        const newUser = await User.create([user], { session });
+            // Create a user in User model
+            const newUser = await User.create([user], session ? { session } : {});
 
-        if (!newUser.length) {
-            throw new AppError(StatusCodes.BAD_REQUEST, 'Fail to create user');
-        }
+            if (!newUser || !newUser.length) {
+                throw new AppError(StatusCodes.BAD_REQUEST, 'Failed to create user');
+            }
 
-        // Create a teacher to Teacher model (Transaction 2)
-        const teacher = {
-            user_id: newUser[0]._id,
-            teacherId: newUser[0].registeredId,
-            email: newUser[0].email,
-            ...(payload.name && { name: payload.name }),
-            ...(payload.subjects && { subjects: payload.subjects }),
-            ...(payload.assignedWorks && {
-                assignedWorks: payload.assignedWorks,
-            }),
-            joinedDate: formattedTeacherJoiningDate(),
-        };
+            createdUserId = newUser[0]._id;
 
-        const newTeacher = await Teacher.create([teacher], { session });
+            // Create a teacher in Teacher model
+            const teacher = {
+                user_id: newUser[0]._id,
+                teacherId: newUser[0].registeredId,
+                email: newUser[0].email,
+                ...(payload.name?.trim() && { name: payload.name.trim() }),
+                ...(userPhone && { phone: userPhone }),
+                ...(payload.subjects && { subjects: payload.subjects }),
+                ...(payload.assignedWorks && {
+                    assignedWorks: payload.assignedWorks,
+                }),
+                joinedDate: formattedTeacherJoiningDate(),
+            };
 
-        if (!newTeacher.length) {
-            throw new AppError(
-                StatusCodes.BAD_REQUEST,
-                'Fail to create Teacher',
-            );
-        }
+            const newTeacher = await Teacher.create([teacher], session ? { session } : {});
 
-        await session.commitTransaction();
-        await session.endSession();
-    } catch (error: any) {
-        await session.abortTransaction();
-        await session.endSession();
+            if (!newTeacher || !newTeacher.length) {
+                throw new AppError(
+                    StatusCodes.BAD_REQUEST,
+                    'Failed to create Teacher profile',
+                );
+            }
 
-        throw error;
-    }
-
-    return null;
+            return newTeacher[0];
+        },
+        async () => {
+            // Compensating rollback: delete the user if teacher profile creation failed
+            if (createdUserId) {
+                await User.findByIdAndDelete(createdUserId);
+            }
+        },
+    );
 };
 
 // Create Admin
 const createAdmin = async (payload: Record<string, any>) => {
-    const session = await mongoose.startSession();
+    let createdUserId: mongoose.Types.ObjectId | null = null;
 
-    try {
-        session.startTransaction();
+    return await runTransactionSafe(
+        async (session) => {
+            const userEmail = payload.email?.trim().toLowerCase();
+            const userPhone = payload.phone?.trim() ? payload.phone.trim() : undefined;
 
-        const user: Partial<IUser> = {
-            registeredId: `AID${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
-            email: payload.email,
-            password: payload.password,
-            role: 'admin',
-        };
+            const user: Partial<IUser> = {
+                registeredId: `AID${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
+                email: userEmail,
+                password: payload.password,
+                role: USER_ROLE.admin,
+                ...(userPhone && { phone: userPhone }),
+            };
 
-        // Crate a user to User model (Transaction 1)
-        const newUser = await User.create([user], { session });
+            // Create a user in User model
+            const newUser = await User.create([user], session ? { session } : {});
 
-        if (!newUser.length) {
-            throw new AppError(StatusCodes.BAD_REQUEST, 'Fail to create user');
-        }
+            if (!newUser || !newUser.length) {
+                throw new AppError(StatusCodes.BAD_REQUEST, 'Failed to create user');
+            }
 
-        // Create a teacher to Teacher model (Transaction 2)
-        const admin = {
-            user_id: newUser[0]._id,
-            adminId: newUser[0].registeredId,
-            email: newUser[0].email,
-            ...(payload.name && { name: payload.name }),
-            ...(payload.phone && { phone: payload.phone }),
-        };
+            createdUserId = newUser[0]._id;
 
-        const newAdmin = await Admin.create([admin], { session });
+            // Create an admin in Admin model
+            const admin = {
+                user_id: newUser[0]._id,
+                adminId: newUser[0].registeredId,
+                email: newUser[0].email,
+                ...(payload.name?.trim() && { name: payload.name.trim() }),
+                ...(userPhone && { phone: userPhone }),
+            };
 
-        if (!newAdmin.length) {
-            throw new AppError(StatusCodes.BAD_REQUEST, 'Fail to create Admin');
-        }
+            const newAdmin = await Admin.create([admin], session ? { session } : {});
 
-        await session.commitTransaction();
-        await session.endSession();
-    } catch (error: any) {
-        await session.abortTransaction();
-        await session.endSession();
+            if (!newAdmin || !newAdmin.length) {
+                throw new AppError(StatusCodes.BAD_REQUEST, 'Failed to create Admin profile');
+            }
 
-        throw error;
-    }
-
-    return null;
+            return newAdmin[0];
+        },
+        async () => {
+            // Compensating rollback: delete the user if admin profile creation failed
+            if (createdUserId) {
+                await User.findByIdAndDelete(createdUserId);
+            }
+        },
+    );
 };
 
 // Get me

@@ -1,13 +1,14 @@
 import { StatusCodes } from 'http-status-codes';
-import AppError from '../../classes/errorClasses/AppError';
 import { IErrorResponse, TErrorSources } from '../../utils/sendErrorResponse';
 
-const handleUnknownError = (error: AppError): IErrorResponse => {
-    const errorSources: TErrorSources = [{ path: '', message: error.message }];
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const handleUnknownError = (error: any): IErrorResponse => {
+    const message = error?.message || 'Internal server error';
+    const errorSources: TErrorSources = [{ path: '', message }];
 
     return {
-        statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-        message: 'Unknown Error',
+        statusCode: error?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
+        message,
         errorSources,
     };
 };
