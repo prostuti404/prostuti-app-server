@@ -1,14 +1,19 @@
 const { MongoClient } = require('mongodb');
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
 async function main() {
-  const uri = "mongodb://prostutisecret:6ZGF0wLRQxk7bvlK@cluster0-shard-00-00.g5pja.mongodb.net:27017,cluster0-shard-00-01.g5pja.mongodb.net:27017,cluster0-shard-00-02.g5pja.mongodb.net:27017/prostuti-staging?ssl=true&replicaSet=atlas-141zwx-shard-0&authSource=admin&appName=Cluster0";
+  const uri = process.env.DATABASE_URL;
+  if (!uri) {
+    console.error('DATABASE_URL is not set in .env');
+    process.exit(1);
+  }
   const client = new MongoClient(uri);
 
   try {
     await client.connect();
     console.log("Connected correctly to server");
     
-    const db = client.db('prostuti-staging');
+    const db = client.db();
     const users = db.collection('users');
 
     const result = await users.updateOne(
