@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import { IUser } from '../user/user.interface';
 import { User } from '../user/user.model';
@@ -17,6 +16,7 @@ import { convertJWTExpireTimeToSeconds } from './auth.utils';
 
 import { TJWTDecodedUser } from '../../interfaces/jwt/jwt.type';
 import { MainCategory } from './category/category.constant';
+import { runTransactionSafe } from '../../utils/runTransactionSafe';
 
 // Register Student
 const registerStudent = async (
@@ -28,92 +28,89 @@ const registerStudent = async (
     categoryType: string,
     subCategory?: string, // Add subCategory parameter
 ) => {
-    const session = await mongoose.startSession();
+    // Check if the phone number is verified (outside transaction — read-only check)
+    const verifiedPhone = await PhoneVerification.findOne({
+        phoneNumber: formatPhoneNumber(phone),
+        phoneVerificationType: PHONE_VERIFICATION_TYPE.ACCOUNT_CREATION,
+        verified: true,
+        otpCode,
+    });
 
-    try {
-        session.startTransaction();
-
-        // Check if the phone number is verified
-        const verifiedPhone = await PhoneVerification.findOne({
-            phoneNumber: formatPhoneNumber(phone),
-            phoneVerificationType: PHONE_VERIFICATION_TYPE.ACCOUNT_CREATION,
-            verified: true,
-            otpCode,
-        });
-
-        if (!verifiedPhone) {
-            throw new AppError(
-                StatusCodes.BAD_REQUEST,
-                'Invalid OTP or phone number',
-            );
-        }
-
-        // Delete verified phone number
-        await PhoneVerification.findOneAndDelete({
-            phoneNumber: formatPhoneNumber(phone),
-            phoneVerificationType: PHONE_VERIFICATION_TYPE.ACCOUNT_CREATION,
-            verified: true,
-            otpCode,
-        });
-
-        const user: Partial<IUser> = {
-            registeredId: `SID${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
-            password,
-            phone,
-            role: USER_ROLE.student,
-        };
-
-        if (email && email.trim() !== '') {
-            user.email = email;
-        }
-
-        // Crate a user to User model (Transaction 1)
-        const newUser = await User.create([user], { session });
-
-        if (!newUser.length) {
-            throw new AppError(StatusCodes.BAD_REQUEST, 'Fail to create user');
-        }
-
-        // Create the category object based on categoryType
-        const categoryObj: any = {
-            mainCategory: categoryType,
-        };
-
-        // If category is not Job and subCategory is provided, add it to the category object
-        if (categoryType !== MainCategory.JOB && subCategory) {
-            categoryObj.subCategory = subCategory;
-        }
-
-        // Create a student to Student model (Transaction 2) - with categoryType and category
-        const student = {
-            user_id: newUser[0]._id,
-            studentId: newUser[0].registeredId,
-            name: name,
-            email: newUser[0].email,
-            phone: newUser[0].phone,
-            categoryType: categoryType,
-            category: categoryObj,
-            subscriptionStartDate: null,
-            subscriptionEndDate: null,
-        };
-
-        const newStudent = await Student.create([student], { session });
-
-        if (!newStudent.length) {
-            throw new AppError(
-                StatusCodes.BAD_REQUEST,
-                'Fail to create student',
-            );
-        }
-
-        await session.commitTransaction();
-        await session.endSession();
-    } catch (error: any) {
-        await session.abortTransaction();
-        await session.endSession();
-
-        throw error;
+    if (!verifiedPhone) {
+        throw new AppError(
+            StatusCodes.BAD_REQUEST,
+            'Invalid OTP or phone number',
+        );
     }
+
+    // Delete the verified OTP record before creating the user
+    await PhoneVerification.findOneAndDelete({
+        phoneNumber: formatPhoneNumber(phone),
+        phoneVerificationType: PHONE_VERIFICATION_TYPE.ACCOUNT_CREATION,
+        verified: true,
+        otpCode,
+    });
+
+    const user: Partial<IUser> = {
+        registeredId: `SID${Date.now()}${Math.random().toString(36).slice(2, 7)}`,
+        password,
+        phone,
+        role: USER_ROLE.student,
+    };
+
+    if (email && email.trim() !== '') {
+        user.email = email;
+    }
+
+    // Create the category object based on categoryType
+    const categoryObj: any = {
+        mainCategory: categoryType,
+    };
+
+    // If category is not Job and subCategory is provided, add it to the category object
+    if (categoryType !== MainCategory.JOB && subCategory) {
+        categoryObj.subCategory = subCategory;
+    }
+
+    let createdUserId: any = null;
+
+    await runTransactionSafe(
+        async (session) => {
+            // Create a user in User model (Operation 1)
+            const newUser = await User.create([user], session ? { session } : {});
+
+            if (!newUser.length) {
+                throw new AppError(StatusCodes.BAD_REQUEST, 'Fail to create user');
+            }
+
+            createdUserId = newUser[0]._id;
+
+            // Create a student in Student model (Operation 2)
+            const student = {
+                user_id: newUser[0]._id,
+                studentId: newUser[0].registeredId,
+                name: name,
+                email: newUser[0].email,
+                phone: newUser[0].phone,
+                categoryType: categoryType,
+                category: categoryObj,
+                subscriptionStartDate: null,
+                subscriptionEndDate: null,
+            };
+
+            const newStudent = await Student.create([student], session ? { session } : {});
+
+            if (!newStudent.length) {
+                throw new AppError(StatusCodes.BAD_REQUEST, 'Fail to create student');
+            }
+        },
+        async () => {
+            // Compensating rollback: delete the User if Student creation failed
+            if (createdUserId) {
+                await User.findByIdAndDelete(createdUserId);
+            }
+        },
+    );
 
     return null;
 };
@@ -369,86 +366,74 @@ const resetStudentPassword = async (
     phone: string,
     newPassword: string,
 ) => {
-    const session = await mongoose.startSession();
+    // Check if the phone number is verified
+    const verifiedPhone = await PhoneVerification.findOne({
+        phoneNumber: formatPhoneNumber(phone),
+        phoneVerificationType: PHONE_VERIFICATION_TYPE.PASSWORD_RESET,
+        verified: true,
+        otpCode,
+    });
 
-    try {
-        session.startTransaction();
-
-        // Check if the phone number is verified
-        const verifiedPhone = await PhoneVerification.findOne({
-            phoneNumber: formatPhoneNumber(phone),
-            phoneVerificationType: PHONE_VERIFICATION_TYPE.PASSWORD_RESET,
-            verified: true,
-            otpCode,
-        });
-
-        if (!verifiedPhone) {
-            throw new AppError(
-                StatusCodes.BAD_REQUEST,
-                'Invalid OTP or phone number',
-            );
-        }
-
-        // Delete the verified number
-        await PhoneVerification.findOneAndDelete({
-            phoneNumber: formatPhoneNumber(phone),
-            phoneVerificationType: PHONE_VERIFICATION_TYPE.PASSWORD_RESET,
-            verified: true,
-            otpCode,
-        });
-        // Check if the user is exist
-        const user = await User.findOne({
-            $or: [
-                { phone: formatPhoneNumber(phone) },
-                { phone: phone }
-            ]
-        });
-
-        if (!user) {
-            throw new AppError(StatusCodes.NOT_FOUND, 'User not found!');
-        }
-
-        // Check the role
-        if (user.role !== USER_ROLE.student) {
-            throw new AppError(
-                StatusCodes.UNAUTHORIZED,
-                'You are not authorized!',
-            );
-        }
-
-        // Check if the user is already deleted
-        if (user?.isDeleted) {
-            throw new AppError(StatusCodes.FORBIDDEN, 'User is deleted!');
-        }
-
-        // Check if the user is blocked
-        if (user?.status === USER_STATUS.blocked) {
-            throw new AppError(StatusCodes.FORBIDDEN, 'User is blocked!');
-        }
-
-        // Update The password
-        const newHashedPassword = await bcrypt.hash(
-            newPassword,
-            Number(config.bcrypt_salt),
+    if (!verifiedPhone) {
+        throw new AppError(
+            StatusCodes.BAD_REQUEST,
+            'Invalid OTP or phone number',
         );
-
-        await User.findOneAndUpdate(
-            {
-                phone: user.phone,
-                role: user.role,
-            },
-            {
-                password: newHashedPassword,
-            },
-        );
-
-        await session.commitTransaction();
-        session.endSession();
-    } catch (error) {
-        await session.abortTransaction();
-        session.endSession();
-        throw error;
     }
+
+    // Delete the verified number
+    await PhoneVerification.findOneAndDelete({
+        phoneNumber: formatPhoneNumber(phone),
+        phoneVerificationType: PHONE_VERIFICATION_TYPE.PASSWORD_RESET,
+        verified: true,
+        otpCode,
+    });
+
+    // Check if the user exists
+    const user = await User.findOne({
+        $or: [
+            { phone: formatPhoneNumber(phone) },
+            { phone: phone }
+        ]
+    });
+
+    if (!user) {
+        throw new AppError(StatusCodes.NOT_FOUND, 'User not found!');
+    }
+
+    // Check the role
+    if (user.role !== USER_ROLE.student) {
+        throw new AppError(
+            StatusCodes.UNAUTHORIZED,
+            'You are not authorized!',
+        );
+    }
+
+    // Check if the user is already deleted
+    if (user?.isDeleted) {
+        throw new AppError(StatusCodes.FORBIDDEN, 'User is deleted!');
+    }
+
+    // Check if the user is blocked
+    if (user?.status === USER_STATUS.blocked) {
+        throw new AppError(StatusCodes.FORBIDDEN, 'User is blocked!');
+    }
+
+    // Update the password
+    const newHashedPassword = await bcrypt.hash(
+        newPassword,
+        Number(config.bcrypt_salt),
+    );
+
+    await User.findOneAndUpdate(
+        {
+            phone: user.phone,
+            role: user.role,
+        },
+        {
+            password: newHashedPassword,
+        },
+    );
 
     return null;
 };
